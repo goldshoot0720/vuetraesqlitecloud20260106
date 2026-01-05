@@ -15,15 +15,15 @@
     <div class="list">
       <div class="item" v-for="item in subscriptions" :key="item.id">
         <div class="main-info">
-          <div class="name">{{ item.get('name') || '未命名' }}</div>
-          <div class="site-link" v-if="item.get('site')">
-            <a :href="item.get('site')" target="_blank" rel="noopener">🌐 前往網站</a>
+          <div class="name">{{ item.name || '未命名' }}</div>
+          <div class="site-link" v-if="item.site">
+            <a :href="item.site" target="_blank" rel="noopener">🌐 前往網站</a>
           </div>
         </div>
         <div class="meta">
-          <div class="price">價格：${{ item.get('price') || 0 }}</div>
-          <div class="date">下期：{{ item.get('nextdate') ? new Date(item.get('nextdate')).toLocaleDateString() : '未設定' }}</div>
-          <div class="note" v-if="item.get('note')">備註：{{ item.get('note') }}</div>
+          <div class="price">價格：${{ item.price || 0 }}</div>
+          <div class="date">下期：{{ item.nextdate ? new Date(item.nextdate).toLocaleDateString() : '未設定' }}</div>
+          <div class="note" v-if="item.note">備註：{{ item.note }}</div>
         </div>
         <div class="ops">
           <button class="btn" @click="openModal(item)">編輯</button>
@@ -70,7 +70,7 @@
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
-import Parse from '../services/parse';
+import sqliteService from '../services/sqlite';
 
 const subscriptions = ref([]);
 const showModal = ref(false);
@@ -86,13 +86,13 @@ const formData = reactive({
 const openModal = (item = null) => {
   editingItem.value = item;
   if (item) {
-    formData.name = item.get('name');
-    formData.price = item.get('price');
+    formData.name = item.name;
+    formData.price = item.price;
     // Format date for input[type="date"]
-    const date = item.get('nextdate');
+    const date = item.nextdate;
     formData.nextdate = date ? new Date(date).toISOString().split('T')[0] : '';
-    formData.site = item.get('site');
-    formData.note = item.get('note');
+    formData.site = item.site;
+    formData.note = item.note;
   } else {
     // Reset form
     formData.name = '';
@@ -111,24 +111,24 @@ const closeModal = () => {
 
 const saveSubscription = async () => {
   try {
-    const Subscriptions = Parse.Object.extend('subscription');
-    let subscription;
+    const db = await sqliteService.getDatabase();
+    const nextdate = formData.nextdate ? new Date(formData.nextdate).toISOString().split('T')[0] : null;
 
     if (editingItem.value) {
-      subscription = editingItem.value;
+      // Update
+      await db.sql`UPDATE subscriptions SET 
+        name = ${formData.name}, 
+        price = ${Number(formData.price)}, 
+        nextdate = ${nextdate}, 
+        site = ${formData.site}, 
+        note = ${formData.note}
+        WHERE id = ${editingItem.value.id}`;
     } else {
-      subscription = new Subscriptions();
+      // Insert
+      await db.sql`INSERT INTO subscriptions (name, price, nextdate, site, note) 
+        VALUES (${formData.name}, ${Number(formData.price)}, ${nextdate}, ${formData.site}, ${formData.note})`;
     }
 
-    subscription.set('name', formData.name);
-    subscription.set('price', Number(formData.price));
-    if (formData.nextdate) {
-      subscription.set('nextdate', new Date(formData.nextdate));
-    }
-    subscription.set('site', formData.site);
-    subscription.set('note', formData.note);
-
-    await subscription.save();
     closeModal();
     fetchData(); // Refresh list
   } catch (error) {
@@ -141,7 +141,8 @@ const deleteSubscription = async (item) => {
   if (!confirm('確定要刪除此訂閱嗎？')) return;
   
   try {
-    await item.destroy();
+    const db = await sqliteService.getDatabase();
+    await db.sql`DELETE FROM subscriptions WHERE id = ${item.id}`;
     fetchData(); // Refresh list
   } catch (error) {
     console.error('Error deleting subscription:', error);
@@ -151,14 +152,14 @@ const deleteSubscription = async (item) => {
 
 const fetchData = async () => {
   try {
-    // 根據截圖，Class 名稱是小寫的 'subscription'
-    const Subscriptions = Parse.Object.extend('subscription');
-    const query = new Parse.Query(Subscriptions);
-    query.ascending('nextdate');
-    // 根據截圖欄位：name, nextdate, price, site, note
-    subscriptions.value = await query.find();
+    const db = await sqliteService.getDatabase();
+    // Use SQL to fetch data, ordered by nextdate
+    const result = await db.sql`SELECT * FROM subscriptions ORDER BY nextdate ASC`;
+    subscriptions.value = result;
   } catch (error) {
     console.error('Error fetching subscriptions:', error);
+    // Silent fail or user notification depending on preference
+    // If table doesn't exist, it might throw, which is handled by init suggestion in settings
   }
 };
 
@@ -205,85 +206,82 @@ onMounted(() => {
 }
 .search {
   flex: 1;
-  padding: 8px 12px;
-  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
   border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
 }
 .list {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .item {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.1);
   border-radius: 12px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  align-items: center;
-  gap: 10px;
+  padding: 16px;
 }
 .main-info {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 .name {
-  font-weight: 600;
-  font-size: 16px;
+  font-size: 1.1em;
+  font-weight: bold;
 }
 .site-link a {
-  color: #4facfe;
+  color: #63b3ed;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 0.9em;
 }
 .meta {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-  opacity: 0.9;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.9em;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 12px;
 }
-.note {
-  font-size: 12px;
-  opacity: 0.7;
-  color: #ffeb3b;
+.ops {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .ops .btn {
-  background: rgba(255,255,255,0.2);
+  padding: 4px 12px;
+  border-radius: 6px;
   border: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
   color: #fff;
-  padding: 6px 10px;
-  border-radius: 8px;
-  margin-left: 6px;
 }
 .ops .danger {
-  background: #ff5a5f;
+  background: rgba(239, 68, 68, 0.4);
 }
-
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0,0,0,0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100;
 }
 .modal {
-  background: #2a2a2a;
+  background: #1f2937;
   padding: 24px;
   border-radius: 16px;
   width: 90%;
-  max-width: 500px;
-  color: #fff;
+  max-width: 400px;
 }
 .modal h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
+  margin: 0 0 20px 0;
 }
 .form-group {
   margin-bottom: 16px;
@@ -291,33 +289,30 @@ onMounted(() => {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-size: 14px;
-  opacity: 0.8;
+  color: rgba(255,255,255,0.8);
 }
 .form-group input {
   width: 100%;
-  padding: 10px;
+  padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.2);
   color: #fff;
-  box-sizing: border-box;
 }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   margin-top: 24px;
 }
 .modal-actions .btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
-.modal-actions .btn.primary {
-  background: #4facfe;
+.modal-actions .primary {
+  background: #ff5a5f;
+  color: white;
 }
 </style>

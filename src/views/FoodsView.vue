@@ -14,18 +14,18 @@
     </div>
     <div class="cards">
       <div class="card" v-for="item in foods" :key="item.id">
-        <div class="thumb food" :style="item.get('photo') ? { backgroundImage: `url(${item.get('photo')})` } : {}"></div>
+        <div class="thumb food" :style="item.photo ? { backgroundImage: `url(${item.photo})` } : {}"></div>
         <div class="meta">
-          <div class="name">{{ item.get('name') || '未命名' }}</div>
+          <div class="name">{{ item.name || '未命名' }}</div>
           <div class="info">
-            <span v-if="item.get('shop')" class="shop-tag">🏠 {{ item.get('shop') }}</span>
+            <span v-if="item.shop" class="shop-tag">🏠 {{ item.shop }}</span>
             <div class="details">
-              <span>數量：{{ item.get('amount') || 0 }}</span>
-              <span>價格：${{ (item.get('price') || 0).toLocaleString() }}</span>
+              <span>數量：{{ item.amount || 0 }}</span>
+              <span>價格：${{ (item.price || 0).toLocaleString() }}</span>
             </div>
-            <div class="expiry" :class="{ expired: isExpired(item.get('todate')), warning: isExpiringSoon(item.get('todate')) }">
-              📅 {{ item.get('todate') ? new Date(item.get('todate')).toLocaleDateString() : '未設定' }}
-              <span v-if="item.get('todate')">({{ getDaysRemaining(item.get('todate')) }})</span>
+            <div class="expiry" :class="{ expired: isExpired(item.todate), warning: isExpiringSoon(item.todate) }">
+              📅 {{ item.todate ? new Date(item.todate).toLocaleDateString() : '未設定' }}
+              <span v-if="item.todate">({{ getDaysRemaining(item.todate) }})</span>
             </div>
           </div>
           <div class="ops">
@@ -78,7 +78,7 @@
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
-import Parse from '../services/parse';
+import sqliteService from '../services/sqlite';
 
 const foods = ref([]);
 const showModal = ref(false);
@@ -95,13 +95,13 @@ const formData = reactive({
 const openModal = (item = null) => {
   editingItem.value = item;
   if (item) {
-    formData.name = item.get('name');
-    formData.amount = item.get('amount');
-    formData.price = item.get('price');
-    formData.shop = item.get('shop');
-    const date = item.get('todate');
+    formData.name = item.name;
+    formData.amount = item.amount;
+    formData.price = item.price;
+    formData.shop = item.shop;
+    const date = item.todate;
     formData.todate = date ? new Date(date).toISOString().split('T')[0] : '';
-    formData.photo = item.get('photo');
+    formData.photo = item.photo;
   } else {
     // Reset form
     formData.name = '';
@@ -121,25 +121,25 @@ const closeModal = () => {
 
 const saveFood = async () => {
   try {
-    const Food = Parse.Object.extend('food');
-    let food;
+    const db = await sqliteService.getDatabase();
+    const todate = formData.todate ? new Date(formData.todate).toISOString().split('T')[0] : null;
 
     if (editingItem.value) {
-      food = editingItem.value;
+      // Update
+      await db.sql`UPDATE foods SET 
+        name = ${formData.name}, 
+        amount = ${Number(formData.amount)}, 
+        price = ${Number(formData.price)}, 
+        shop = ${formData.shop}, 
+        todate = ${todate}, 
+        photo = ${formData.photo}
+        WHERE id = ${editingItem.value.id}`;
     } else {
-      food = new Food();
+      // Insert
+      await db.sql`INSERT INTO foods (name, amount, price, shop, todate, photo) 
+        VALUES (${formData.name}, ${Number(formData.amount)}, ${Number(formData.price)}, ${formData.shop}, ${todate}, ${formData.photo})`;
     }
 
-    food.set('name', formData.name);
-    food.set('amount', Number(formData.amount));
-    food.set('price', Number(formData.price));
-    food.set('shop', formData.shop);
-    if (formData.todate) {
-      food.set('todate', new Date(formData.todate));
-    }
-    food.set('photo', formData.photo);
-
-    await food.save();
     closeModal();
     fetchData(); // Refresh list
   } catch (error) {
@@ -152,7 +152,8 @@ const deleteFood = async (item) => {
   if (!confirm('確定要刪除此食品嗎？')) return;
   
   try {
-    await item.destroy();
+    const db = await sqliteService.getDatabase();
+    await db.sql`DELETE FROM foods WHERE id = ${item.id}`;
     fetchData(); // Refresh list
   } catch (error) {
     console.error('Error deleting food:', error);
@@ -162,15 +163,10 @@ const deleteFood = async (item) => {
 
 const fetchData = async () => {
   try {
-    // 根據截圖，Class 名稱是小寫的 'food'
-    const Food = Parse.Object.extend('food');
-    const query = new Parse.Query(Food);
-    
-    // 依據到期日排序，快過期的排前面
-    query.ascending('todate');
-
-    // 根據截圖欄位：name, amount, todate, photo, price, shop
-    foods.value = await query.find();
+    const db = await sqliteService.getDatabase();
+    // Use SQL to fetch data, ordered by todate
+    const result = await db.sql`SELECT * FROM foods ORDER BY todate ASC`;
+    foods.value = result;
   } catch (error) {
     console.error('Error fetching foods:', error);
   }
@@ -199,7 +195,7 @@ const isExpiringSoon = (date) => {
   const target = new Date(date);
   const diffTime = target - now;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= 7;
+  return diffDays > 0 && diffDays <= 7;
 };
 
 onMounted(() => {
@@ -245,106 +241,112 @@ onMounted(() => {
 }
 .search {
   flex: 1;
-  padding: 8px 12px;
-  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
   border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
 }
 .cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 .card {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.1);
   border-radius: 12px;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 140px 1fr;
+  display: flex;
+  flex-direction: column;
 }
-.thumb.food {
-  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+.thumb {
+  height: 160px;
   background-size: cover;
   background-position: center;
+  background-color: rgba(0,0,0,0.2);
+}
+.thumb.food {
+  background-image: url('https://placehold.co/400x300?text=No+Image');
 }
 .meta {
-  padding: 10px 12px;
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .name {
-  font-weight: 600;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-bottom: 8px;
 }
 .info {
-  font-size: 12px;
-  opacity: 0.9;
-  margin: 6px 0;
-}
-.ops .btn {
-  background: rgba(255,255,255,0.2);
-  border: none;
-  color: #fff;
-  padding: 6px 10px;
-  border-radius: 8px;
-  margin-right: 6px;
-}
-.ops .danger {
-  background: #ff5a5f;
-}
-@media (max-width: 1000px) {
-  .cards {
-    grid-template-columns: 1fr;
-  }
+  flex: 1;
+  font-size: 0.9em;
+  color: rgba(255,255,255,0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 .shop-tag {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2px 6px;
+  background: rgba(255,255,255,0.15);
+  padding: 2px 8px;
   border-radius: 4px;
-  font-size: 12px;
-  margin-bottom: 4px;
+  display: inline-block;
+  align-self: flex-start;
 }
 .details {
   display: flex;
-  gap: 8px;
-  font-size: 13px;
-  opacity: 0.9;
-  margin-bottom: 4px;
+  gap: 12px;
 }
 .expiry {
-  font-size: 13px;
-  color: #fff;
-}
-.expiry.expired {
-  color: #ff5a5f;
-  font-weight: bold;
+  margin-top: 4px;
 }
 .expiry.warning {
-  color: #ffc107;
+  color: #fbbf24;
   font-weight: bold;
 }
-
-/* Modal Styles */
+.expiry.expired {
+  color: #ef4444;
+  font-weight: bold;
+}
+.ops {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ops .btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+.ops .danger {
+  background: rgba(239, 68, 68, 0.4);
+}
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0,0,0,0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100;
 }
 .modal {
-  background: #2a2a2a;
+  background: #1f2937;
   padding: 24px;
   border-radius: 16px;
   width: 90%;
-  max-width: 500px;
-  color: #fff;
+  max-width: 400px;
 }
 .modal h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
+  margin: 0 0 20px 0;
 }
 .form-group {
   margin-bottom: 16px;
@@ -352,33 +354,30 @@ onMounted(() => {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-size: 14px;
-  opacity: 0.8;
+  color: rgba(255,255,255,0.8);
 }
 .form-group input {
   width: 100%;
-  padding: 10px;
+  padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.2);
   color: #fff;
-  box-sizing: border-box;
 }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   margin-top: 24px;
 }
 .modal-actions .btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
-.modal-actions .btn.primary {
-  background: #4facfe;
+.modal-actions .primary {
+  background: #ff5a5f;
+  color: white;
 }
 </style>

@@ -7,6 +7,7 @@ import LyricsView from '../views/LyricsView.vue'
 import SubscriptionsView from '../views/SubscriptionsView.vue'
 import FoodsView from '../views/FoodsView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import SqliteDemoView from '../views/SqliteDemoView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,6 +16,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/sqlite-demo',
+      name: 'sqlite-demo',
+      component: SqliteDemoView,
     },
     {
       path: '/dashboard',
