@@ -116,7 +116,7 @@ const saveSubscription = async () => {
 
     if (editingItem.value) {
       // Update
-      await db.sql`UPDATE subscriptions SET 
+      await db.sql`UPDATE subscription SET 
         name = ${formData.name}, 
         price = ${Number(formData.price)}, 
         nextdate = ${nextdate}, 
@@ -125,7 +125,7 @@ const saveSubscription = async () => {
         WHERE id = ${editingItem.value.id}`;
     } else {
       // Insert
-      await db.sql`INSERT INTO subscriptions (name, price, nextdate, site, note) 
+      await db.sql`INSERT INTO subscription (name, price, nextdate, site, note) 
         VALUES (${formData.name}, ${Number(formData.price)}, ${nextdate}, ${formData.site}, ${formData.note})`;
     }
 
@@ -142,7 +142,7 @@ const deleteSubscription = async (item) => {
   
   try {
     const db = await sqliteService.getDatabase();
-    await db.sql`DELETE FROM subscriptions WHERE id = ${item.id}`;
+    await db.sql`DELETE FROM subscription WHERE id = ${item.id}`;
     fetchData(); // Refresh list
   } catch (error) {
     console.error('Error deleting subscription:', error);
@@ -154,7 +154,7 @@ const fetchData = async () => {
   try {
     const db = await sqliteService.getDatabase();
     // Use SQL to fetch data, ordered by nextdate
-    const result = await db.sql`SELECT * FROM subscriptions ORDER BY nextdate ASC`;
+    const result = await db.sql`SELECT * FROM subscription ORDER BY nextdate ASC`;
     subscriptions.value = result;
   } catch (error) {
     console.error('Error fetching subscriptions:', error);

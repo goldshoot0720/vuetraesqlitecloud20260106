@@ -74,12 +74,12 @@ const saveSettings = () => {
 };
 
 const initSqliteTables = async () => {
-  if (!confirm('確定要初始化 SQLite 資料表嗎？這將建立 subscriptions 和 foods 資料表 (如果不存在)。')) return;
+  if (!confirm('確定要初始化 SQLite 資料表嗎？這將建立 subscription 和 food 資料表 (如果不存在)。')) return;
   try {
     const db = await sqliteService.getDatabase();
     
     // Create Subscription Table
-    await db.sql`CREATE TABLE IF NOT EXISTS subscriptions (
+    await db.sql`CREATE TABLE IF NOT EXISTS subscription (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       price REAL,
@@ -89,7 +89,7 @@ const initSqliteTables = async () => {
     );`;
     
     // Create Food Table
-    await db.sql`CREATE TABLE IF NOT EXISTS foods (
+    await db.sql`CREATE TABLE IF NOT EXISTS food (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       amount INTEGER,
@@ -99,7 +99,7 @@ const initSqliteTables = async () => {
       photo TEXT
     );`;
     
-    alert('資料表初始化成功！');
+    alert('subscription 和 food 資料表初始化成功！');
   } catch (error) {
     console.error('Initialization error:', error);
     alert('初始化失敗：' + error.message);

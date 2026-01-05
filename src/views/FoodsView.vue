@@ -126,7 +126,7 @@ const saveFood = async () => {
 
     if (editingItem.value) {
       // Update
-      await db.sql`UPDATE foods SET 
+      await db.sql`UPDATE food SET 
         name = ${formData.name}, 
         amount = ${Number(formData.amount)}, 
         price = ${Number(formData.price)}, 
@@ -136,7 +136,7 @@ const saveFood = async () => {
         WHERE id = ${editingItem.value.id}`;
     } else {
       // Insert
-      await db.sql`INSERT INTO foods (name, amount, price, shop, todate, photo) 
+      await db.sql`INSERT INTO food (name, amount, price, shop, todate, photo) 
         VALUES (${formData.name}, ${Number(formData.amount)}, ${Number(formData.price)}, ${formData.shop}, ${todate}, ${formData.photo})`;
     }
 
@@ -153,7 +153,7 @@ const deleteFood = async (item) => {
   
   try {
     const db = await sqliteService.getDatabase();
-    await db.sql`DELETE FROM foods WHERE id = ${item.id}`;
+    await db.sql`DELETE FROM food WHERE id = ${item.id}`;
     fetchData(); // Refresh list
   } catch (error) {
     console.error('Error deleting food:', error);
@@ -165,7 +165,7 @@ const fetchData = async () => {
   try {
     const db = await sqliteService.getDatabase();
     // Use SQL to fetch data, ordered by todate
-    const result = await db.sql`SELECT * FROM foods ORDER BY todate ASC`;
+    const result = await db.sql`SELECT * FROM food ORDER BY todate ASC`;
     foods.value = result;
   } catch (error) {
     console.error('Error fetching foods:', error);
