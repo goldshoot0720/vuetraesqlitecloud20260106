@@ -271,6 +271,23 @@ const images = ref([
   }
 }
 @media (max-width: 600px) {
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .header h2 {
+    margin: 0;
+  }
+  .actions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+  .toolbar {
+    flex-direction: column;
+  }
   .cards {
     grid-template-columns: 1fr;
   }

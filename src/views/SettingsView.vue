@@ -606,4 +606,31 @@ input:focus {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .input-wrapper {
+    flex-direction: column;
+  }
+  .copy-btn {
+    width: 100%;
+  }
+  .actions {
+    justify-content: stretch;
+  }
+  .actions .btn {
+    width: 100%;
+  }
+  .group-actions {
+    flex-direction: column;
+  }
+  .group-actions .btn {
+    width: 100%;
+  }
+}
 </style>

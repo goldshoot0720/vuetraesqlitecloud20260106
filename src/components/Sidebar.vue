@@ -5,13 +5,13 @@
       <div class="brand-name">鋒兄AI系統</div>
     </div>
     <nav class="menu">
-      <RouterLink to="/" class="item"><span class="icon">🏠</span>首頁</RouterLink>
-      <RouterLink to="/images" class="item"><span class="icon">🖼️</span>圖片庫</RouterLink>
-      <RouterLink to="/videos" class="item"><span class="icon">🎬</span>影片庫</RouterLink>
-      <RouterLink to="/lyrics" class="item"><span class="icon">🎵</span>鋒兄音樂歌詞</RouterLink>
-      <RouterLink to="/subscriptions" class="item"><span class="icon">📋</span>訂閱管理</RouterLink>
-      <RouterLink to="/foods" class="item"><span class="icon">🍎</span>食品管理</RouterLink>
-      <RouterLink to="/settings" class="item"><span class="icon">⚙️</span>系統設定</RouterLink>
+      <RouterLink to="/" class="item"><span class="icon">🏠</span><span class="text">首頁</span></RouterLink>
+      <RouterLink to="/images" class="item"><span class="icon">🖼️</span><span class="text">圖片庫</span></RouterLink>
+      <RouterLink to="/videos" class="item"><span class="icon">🎬</span><span class="text">影片庫</span></RouterLink>
+      <RouterLink to="/lyrics" class="item"><span class="icon">🎵</span><span class="text">鋒兄音樂歌詞</span></RouterLink>
+      <RouterLink to="/subscriptions" class="item"><span class="icon">📋</span><span class="text">訂閱管理</span></RouterLink>
+      <RouterLink to="/foods" class="item"><span class="icon">🍎</span><span class="text">食品管理</span></RouterLink>
+      <RouterLink to="/settings" class="item"><span class="icon">⚙️</span><span class="text">系統設定</span></RouterLink>
     </nav>
   </aside>
 </template>
@@ -73,7 +73,69 @@ import { RouterLink } from 'vue-router'
 }
 @media (max-width: 900px) {
   .sidebar {
-    width: 200px;
+    width: 72px;
+    padding: 24px 8px;
+  }
+  .brand-name {
+    display: none;
+  }
+  .brand {
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .text {
+    display: none;
+  }
+  .item {
+    justify-content: center;
+    padding: 10px 0;
+  }
+  .icon {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    width: 100%;
+    height: 60px;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+  }
+  .brand {
+    display: none;
+  }
+  .menu {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+    gap: 0;
+    height: 100%;
+  }
+  .item {
+    flex-direction: column;
+    padding: 4px;
+    gap: 2px;
+    flex: 1;
+    border-radius: 0;
+    justify-content: center;
+  }
+  .icon {
+    width: auto;
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+  .text {
+    display: block;
+    font-size: 10px;
+    line-height: 1;
   }
 }
 </style>

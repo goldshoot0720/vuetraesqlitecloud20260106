@@ -315,4 +315,46 @@ onMounted(() => {
   background: #ff5a5f;
   color: white;
 }
+
+@media (max-width: 600px) {
+  .header {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .header h2 {
+    font-size: 1.5rem;
+  }
+  .actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .actions .btn {
+    flex: 1;
+  }
+  .toolbar {
+    flex-direction: column;
+  }
+  .item {
+    padding: 12px;
+  }
+  .main-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ops {
+    margin-top: 8px;
+    justify-content: stretch;
+  }
+  .ops .btn {
+    flex: 1;
+  }
+}
 </style>

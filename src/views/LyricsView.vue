@@ -674,4 +674,25 @@ const closeModal = () => {
   color: #666;
   font-size: 0.9rem;
 }
+
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .actions .btn {
+    width: 100%;
+  }
+  .toolbar {
+    flex-direction: column;
+  }
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

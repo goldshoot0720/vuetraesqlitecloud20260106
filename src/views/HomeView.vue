@@ -191,6 +191,12 @@ onMounted(() => {
   .tech {
     grid-template-columns: 1fr;
   }
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+  .hero {
+    padding: 24px 16px;
+  }
 }
 .dashboard {
   display: grid;

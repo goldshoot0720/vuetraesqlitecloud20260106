@@ -45,8 +45,21 @@ import Sidebar from './components/Sidebar.vue'
 }
 @media (max-width: 900px) {
   .content {
-    margin-left: 200px;
-    width: calc(100% - 200px);
+    margin-left: 72px;
+    width: calc(100% - 72px);
+  }
+}
+@media (max-width: 600px) {
+  .content {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: 70px; /* Space for bottom nav */
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+  .main {
+    padding: 16px;
   }
 }
 </style>

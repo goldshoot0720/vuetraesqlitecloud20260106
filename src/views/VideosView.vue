@@ -113,4 +113,12 @@ const videos = ref([
     grid-template-columns: 1fr;
   }
 }
+@media (max-width: 600px) {
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
 </style>
