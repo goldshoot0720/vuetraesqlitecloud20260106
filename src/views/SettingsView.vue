@@ -64,11 +64,15 @@
             <div class="group-actions">
               <button class="btn" @click="triggerFoodUpload">上傳 sqlitecloudfood.csv</button>
               <button class="btn" @click="triggerSubscriptionUpload">上傳 sqlitecloudsubscription.csv</button>
+              <button class="btn" @click="triggerBack4appFoodConvert">Back4App food CSV 轉為 SQLite CSV</button>
+              <button class="btn" @click="triggerBack4appSubscriptionConvert">Back4App subscription CSV 轉為 SQLite CSV</button>
             </div>
           </div>
         </div>
         <input ref="foodFile" type="file" accept=".csv" style="display:none" @change="onFoodCsvSelected" />
         <input ref="subscriptionFile" type="file" accept=".csv" style="display:none" @change="onSubscriptionCsvSelected" />
+        <input ref="back4appFoodFile" type="file" accept=".csv" style="display:none" @change="onBack4appFoodCsvSelected" />
+        <input ref="back4appSubscriptionFile" type="file" accept=".csv" style="display:none" @change="onBack4appSubscriptionCsvSelected" />
       </div>
     </div>
   </section>
@@ -83,6 +87,8 @@ const dbName = ref('');
 const apiKey = ref('');
 const foodFile = ref(null);
 const subscriptionFile = ref(null);
+const back4appFoodFile = ref(null);
+const back4appSubscriptionFile = ref(null);
 
 onMounted(() => {
   host.value = localStorage.getItem('sqlite_host') || 'cmk0dgzqhk.g2.sqlite.cloud:8860';
@@ -187,27 +193,29 @@ const parseCsvText = (text) => {
   let field = '';
   let record = [];
   let inQuotes = false;
+  let quoteChar = null;
   while (i < text.length) {
     const c = text[i];
     if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
+      if (c === quoteChar) {
+        if (text[i + 1] === quoteChar) {
+          field += quoteChar;
           i += 2;
           continue;
-        } else {
-          inQuotes = false;
-          i += 1;
-          continue;
         }
+        inQuotes = false;
+        quoteChar = null;
+        i += 1;
+        continue;
       } else {
         field += c;
         i += 1;
         continue;
       }
     } else {
-      if (c === '"') {
+      if (c === '"' || c === '`') {
         inQuotes = true;
+        quoteChar = c;
         i += 1;
         continue;
       }
@@ -339,6 +347,102 @@ const onSubscriptionCsvSelected = async (e) => {
   } catch (error) {
     console.error('上傳 subscription CSV 失敗：', error);
     alert('上傳 subscription CSV 失敗：' + error.message);
+  }
+};
+
+const triggerBack4appFoodConvert = () => {
+  if (back4appFoodFile.value) back4appFoodFile.value.value = '';
+  back4appFoodFile.value?.click();
+};
+
+const triggerBack4appSubscriptionConvert = () => {
+  if (back4appSubscriptionFile.value) back4appSubscriptionFile.value.value = '';
+  back4appSubscriptionFile.value?.click();
+};
+
+const onBack4appFoodCsvSelected = async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const grid = parseCsvText(text).filter(r => r.length && r.some(x => String(x).trim() !== ''));
+    if (grid.length === 0) {
+      alert('CSV 為空');
+      return;
+    }
+    const headers = grid[0].map(x => String(x).trim());
+    const required = ['objectId','name','amount','price','shop','todate','photo'];
+    const hasReq = required.every(h => headers.includes(h));
+    if (!hasReq) {
+      alert('CSV 欄位不符合：需要 ' + required.join(','));
+      return;
+    }
+    const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+    const outHeaders = ['id','name','amount','price','shop','todate','photo'];
+    const outRows = [];
+    for (let r = 1; r < grid.length; r++) {
+      const row = grid[r];
+      const name = toTextOrNull(row[idx['name']]);
+      const amount = toNumberOrNull(row[idx['amount']]);
+      const price = toNumberOrNull(row[idx['price']]);
+      const shop = toTextOrNull(row[idx['shop']]);
+      const todate = toTextOrNull(row[idx['todate']]);
+      let photo = toTextOrNull(row[idx['photo']]);
+      if (photo && photo.includes(',')) {
+        photo = photo.split(',')[0].trim();
+      }
+      outRows.push({ id: '', name, amount, price, shop, todate, photo });
+    }
+    exportCsv(outRows, outHeaders, 'sqlitecloudfood.csv');
+    alert('轉換完成，已下載 sqlitecloudfood.csv');
+  } catch (error) {
+    console.error('Back4App food CSV 轉換失敗：', error);
+    alert('轉換失敗：' + error.message);
+  }
+};
+
+const onBack4appSubscriptionCsvSelected = async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const grid = parseCsvText(text).filter(r => r.length && r.some(x => String(x).trim() !== ''));
+    if (grid.length === 0) {
+      alert('CSV 為空');
+      return;
+    }
+    const headers = grid[0].map(x => String(x).trim());
+    const required = ['objectId','name','price','nextdate','site','note'];
+    const hasReq = required.every(h => headers.includes(h));
+    if (!hasReq) {
+      alert('CSV 欄位不符合：需要 ' + required.join(','));
+      return;
+    }
+    const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+    const outHeaders = ['id','name','price','nextdate','site','note'];
+    const outRows = [];
+    for (let r = 1; r < grid.length; r++) {
+      const row = grid[r];
+      const name = toTextOrNull(row[idx['name']]);
+      const price = toNumberOrNull(row[idx['price']]);
+      const nextdate = toTextOrNull(row[idx['nextdate']]);
+      const rawSite = toTextOrNull(row[idx['site']]);
+      const noteCol = toTextOrNull(row[idx['note']]);
+      let site = rawSite;
+      let noteFromCombined = null;
+      if (rawSite && rawSite.includes(',')) {
+        const parts = rawSite.split(',');
+        site = parts[0] ? parts[0].trim() : null;
+        noteFromCombined = parts[1] ? parts[1].trim() : null;
+      }
+      const note = noteCol || noteFromCombined;
+      outRows.push({ id: '', name, price, nextdate, site, note });
+    }
+    exportCsv(outRows, outHeaders, 'sqlitecloudsubscription.csv');
+    alert('轉換完成，已下載 sqlitecloudsubscription.csv');
+  } catch (error) {
+    console.error('Back4App subscription CSV 轉換失敗：', error);
+    alert('轉換失敗：' + error.message);
   }
 };
 
