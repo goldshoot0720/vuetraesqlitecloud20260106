@@ -17,9 +17,9 @@
         <div class="card">
           <div class="card-title">🚀 後端技術</div>
           <ul class="list">
-            <li>Back4app（Parse）</li>
-            <li>資料存放於 Back4app</li>
-            <li>RESTful API + Parse SDK</li>
+            <li>SQLite Cloud</li>
+            <li>資料存放於 SQLite Cloud</li>
+            <li>SQL 查詢 + SQLite Cloud Drivers</li>
           </ul>
         </div>
       </div>
