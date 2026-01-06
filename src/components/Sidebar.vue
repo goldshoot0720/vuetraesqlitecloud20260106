@@ -1,8 +1,11 @@
 <template>
   <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-badge">鋒</div>
-      <div class="brand-name">鋒兄AI系統</div>
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-badge">鋒</div>
+        <div class="brand-name">鋒兄AI系統</div>
+      </div>
+      <button class="close-btn" @click="$emit('close')">×</button>
     </div>
     <nav class="menu">
       <RouterLink to="/" class="item"><span class="icon">🏠</span><span class="text">首頁</span></RouterLink>
@@ -82,9 +85,13 @@ import { RouterLink } from 'vue-router'
   .brand-name {
     display: none;
   }
-  .brand {
+  .sidebar-header {
     justify-content: center;
     margin-bottom: 24px;
+  }
+  .brand {
+    justify-content: center;
+    margin-bottom: 0;
   }
   .text {
     display: none;
@@ -100,48 +107,47 @@ import { RouterLink } from 'vue-router'
 
 @media (max-width: 600px) {
   .sidebar {
-    width: 100%;
-    height: 60px;
-    top: auto;
-    bottom: 0;
+    width: 250px;
+    height: 100%;
+    top: 0;
     left: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    bottom: 0;
+    padding: 24px 16px;
+    display: block;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
     z-index: 1000;
   }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+  }
   .brand {
-    display: none;
+    display: flex;
   }
   .menu {
-    flex-direction: row;
+    flex-direction: column;
     width: 100%;
-    justify-content: space-around;
-    gap: 0;
-    height: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+    height: auto;
   }
   .item {
-    flex-direction: column;
-    padding: 4px;
-    gap: 2px;
-    flex: 1;
-    border-radius: 0;
-    justify-content: center;
+    flex-direction: row;
+    padding: 10px 12px;
+    gap: 10px;
+    flex: none;
+    border-radius: 10px;
+    justify-content: flex-start;
   }
   .icon {
-    width: auto;
-    font-size: 20px;
-    margin-bottom: 2px;
+    width: 22px;
+    font-size: inherit;
+    margin-bottom: 0;
   }
-  .text.desktop {
-    display: none;
-  }
-  .text.mobile {
-    display: block;
-    font-size: 10px;
-    line-height: 1;
+  .text {
+    display: inline;
+    font-size: 16px;
   }
 }
 </style>
