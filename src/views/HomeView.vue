@@ -26,7 +26,7 @@
     </div>
     <div class="dashboard">
       <div class="panel">
-        <div class="panel-title">🧾 訂閱管理</div>
+        <div class="panel-title">🧾 訂閱管理 <button class="mini-btn" @click="fetchDashboard">重新整理</button></div>
         <div class="stats">
           <div class="stat">
             <div class="label">項目數</div>
@@ -45,7 +45,7 @@
         </div>
       </div>
       <div class="panel">
-        <div class="panel-title">🍎 食品管理</div>
+        <div class="panel-title">🍎 食品管理 <button class="mini-btn" @click="fetchDashboard">重新整理</button></div>
         <div class="stats">
           <div class="stat">
             <div class="label">項目數</div>
@@ -70,7 +70,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import Parse from '../services/parse';
+import sqliteService from '../services/sqlite';
 
 const subscriptionTotal = ref(0);
 const subscription7 = ref(0);
@@ -96,48 +96,31 @@ const formatDate = (d) => {
 };
 
 const fetchDashboard = async () => {
-  const now = new Date();
-
-  const Subscription = Parse.Object.extend('subscription');
-  const Food = Parse.Object.extend('food');
-
-  const subTotalQuery = new Parse.Query(Subscription);
-  subscriptionTotal.value = await subTotalQuery.count();
-
-  const sub7Query = new Parse.Query(Subscription);
-  sub7Query.greaterThanOrEqualTo('nextdate', now);
-  sub7Query.lessThanOrEqualTo('nextdate', addDays(now, 7));
-  subscription7.value = await sub7Query.count();
-  sub7Query.ascending('nextdate');
-  const s7 = await sub7Query.first();
-  subscription7Date.value = s7 ? formatDate(s7.get('nextdate')) : '-';
-
-  const sub30Query = new Parse.Query(Subscription);
-  sub30Query.greaterThanOrEqualTo('nextdate', now);
-  sub30Query.lessThanOrEqualTo('nextdate', addDays(now, 30));
-  subscription30.value = await sub30Query.count();
-  sub30Query.ascending('nextdate');
-  const s30 = await sub30Query.first();
-  subscription30Date.value = s30 ? formatDate(s30.get('nextdate')) : '-';
-
-  const foodTotalQuery = new Parse.Query(Food);
-  foodTotal.value = await foodTotalQuery.count();
-
-  const food3Query = new Parse.Query(Food);
-  food3Query.greaterThanOrEqualTo('todate', now);
-  food3Query.lessThanOrEqualTo('todate', addDays(now, 3));
-  food3.value = await food3Query.count();
-  food3Query.ascending('todate');
-  const f3 = await food3Query.first();
-  food3Date.value = f3 ? formatDate(f3.get('todate')) : '-';
-
-  const food7Query = new Parse.Query(Food);
-  food7Query.greaterThanOrEqualTo('todate', now);
-  food7Query.lessThanOrEqualTo('todate', addDays(now, 7));
-  food7.value = await food7Query.count();
-  food7Query.ascending('todate');
-  const f7 = await food7Query.first();
-  food7Date.value = f7 ? formatDate(f7.get('todate')) : '-';
+  try {
+    const db = await sqliteService.getDatabase();
+    const subTotal = await db.sql`SELECT COUNT(*) AS c FROM subscription`;
+    subscriptionTotal.value = subTotal?.[0]?.c || 0;
+    const sub7Cnt = await db.sql`SELECT COUNT(*) AS c FROM subscription WHERE date(nextdate) >= date('now') AND date(nextdate) <= date('now','+7 day')`;
+    subscription7.value = sub7Cnt?.[0]?.c || 0;
+    const sub7Min = await db.sql`SELECT nextdate FROM subscription WHERE date(nextdate) >= date('now') AND date(nextdate) <= date('now','+7 day') ORDER BY date(nextdate) ASC LIMIT 1`;
+    subscription7Date.value = sub7Min?.[0]?.nextdate ? formatDate(sub7Min[0].nextdate) : '-';
+    const sub30Cnt = await db.sql`SELECT COUNT(*) AS c FROM subscription WHERE date(nextdate) >= date('now') AND date(nextdate) <= date('now','+30 day')`;
+    subscription30.value = sub30Cnt?.[0]?.c || 0;
+    const sub30Min = await db.sql`SELECT nextdate FROM subscription WHERE date(nextdate) >= date('now') AND date(nextdate) <= date('now','+30 day') ORDER BY date(nextdate) ASC LIMIT 1`;
+    subscription30Date.value = sub30Min?.[0]?.nextdate ? formatDate(sub30Min[0].nextdate) : '-';
+    const foodTotalCnt = await db.sql`SELECT COUNT(*) AS c FROM food`;
+    foodTotal.value = foodTotalCnt?.[0]?.c || 0;
+    const food3Cnt = await db.sql`SELECT COUNT(*) AS c FROM food WHERE date(todate) >= date('now') AND date(todate) <= date('now','+3 day')`;
+    food3.value = food3Cnt?.[0]?.c || 0;
+    const food3Min = await db.sql`SELECT todate FROM food WHERE date(todate) >= date('now') AND date(todate) <= date('now','+3 day') ORDER BY date(todate) ASC LIMIT 1`;
+    food3Date.value = food3Min?.[0]?.todate ? formatDate(food3Min[0].todate) : '-';
+    const food7Cnt = await db.sql`SELECT COUNT(*) AS c FROM food WHERE date(todate) >= date('now') AND date(todate) <= date('now','+7 day')`;
+    food7.value = food7Cnt?.[0]?.c || 0;
+    const food7Min = await db.sql`SELECT todate FROM food WHERE date(todate) >= date('now') AND date(todate) <= date('now','+7 day') ORDER BY date(todate) ASC LIMIT 1`;
+    food7Date.value = food7Min?.[0]?.todate ? formatDate(food7Min[0].todate) : '-';
+  } catch (e) {
+    console.error('Dashboard fetch error', e);
+  }
 };
 
 onMounted(() => {
@@ -224,6 +207,16 @@ onMounted(() => {
 .panel-title {
   font-weight: 600;
   margin-bottom: 8px;
+}
+.mini-btn {
+  margin-left: 8px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
 }
 .stats {
   display: grid;
