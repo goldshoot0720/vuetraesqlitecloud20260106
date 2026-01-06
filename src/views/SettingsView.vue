@@ -64,6 +64,12 @@
             <div class="group-actions">
               <button class="btn" @click="triggerFoodUpload">上傳 sqlitecloudfood.csv</button>
               <button class="btn" @click="triggerSubscriptionUpload">上傳 sqlitecloudsubscription.csv</button>
+            </div>
+          </div>
+          <div class="tool-group">
+            <div class="group-title">CSV 轉換</div>
+            <div class="group-desc">Back4App 匯出轉成 SQLite 用 CSV</div>
+            <div class="group-actions">
               <button class="btn" @click="triggerBack4appFoodConvert">Back4App food CSV 轉為 SQLite CSV</button>
               <button class="btn" @click="triggerBack4appSubscriptionConvert">Back4App subscription CSV 轉為 SQLite CSV</button>
             </div>
