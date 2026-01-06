@@ -71,6 +71,9 @@ import { RouterLink } from 'vue-router'
   width: 22px;
   text-align: center;
 }
+.text.mobile {
+  display: none;
+}
 @media (max-width: 900px) {
   .sidebar {
     width: 72px;
@@ -132,7 +135,10 @@ import { RouterLink } from 'vue-router'
     font-size: 20px;
     margin-bottom: 2px;
   }
-  .text {
+  .text.desktop {
+    display: none;
+  }
+  .text.mobile {
     display: block;
     font-size: 10px;
     line-height: 1;
